@@ -7,10 +7,9 @@ const MAPBOX_TOKEN = ''; //Acquire Mapbox accesstoken
 
 class App extends Container {
   render() {
-    const { actions, clickedObject, inputFileName, viewport,
-      routePaths, movesbase, movedData } = this.props;
+    const { actions, inputFileName, viewport, movedData } = this.props;
     const { movesFileName } = inputFileName;
-    const optionVisible = false;
+    const gridcelldata = movedData.filter((x)=>x.gridcelldata);
 
     return (
       <div>
@@ -31,8 +30,19 @@ class App extends Container {
             viewport={viewport} actions={actions}
             mapboxApiAccessToken={MAPBOX_TOKEN}
             layers={[
-              new MovesLayer({ routePaths, movesbase, movedData,
-                clickedObject, actions, optionVisible }),
+              gridcelldata.length > 0  ?
+              gridcelldata.map((data,idx)=>{
+                return new GridCellLayer({
+                  id: 'xband-mesh-layer-' + String(idx),
+                  data: data.gridcelldata,
+                  getElevation:(x)=>x.elevation,
+                  getFillColor:(x)=>x.color,
+                  opacity: 1,
+                  cellSize: 100,
+                  elevationScale: 10,
+                  pickable: true
+                })
+              }):null
             ]}
           />
         </div>
