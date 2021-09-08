@@ -3,10 +3,11 @@ import { GridCellLayer } from '@deck.gl/layers';
 import {
   Container, connectToHarmowareVis, HarmoVisLayers, SimulationDateTime, MovesInput,
   ElapsedTimeRange, ElapsedTimeValue, SpeedValue, SpeedRange,
-  PlayButton, PauseButton, ForwardButton, ReverseButton
+  PlayButton, PauseButton, ForwardButton, ReverseButton, FpsDisplay
 } from 'harmoware-vis';
+import GridCellDataInput from '../components/gridCellData-input';
 
-const MAPBOX_TOKEN = ''; //Acquire Mapbox accesstoken
+const MAPBOX_TOKEN = 'pk.eyJ1IjoieW11Y3lzdGsiLCJhIjoiY2oxdmhhbmd0MDAwYjM4bXd1YWVodWNrcCJ9.aWxoDc0UXMVGB96b82GFKQ'; //Acquire Mapbox accesstoken
 
 class App extends Container {
   constructor(props) {
@@ -17,7 +18,12 @@ class App extends Container {
     this.props.actions.setViewport({
       longitude:137.46942143342378,latitude:35.60524064943615,zoom:10.0
     });
-
+    this.state = {
+      gridcelldataDic:{}
+    };
+  }
+  setGridcelldataDic(gridcelldataDic){
+    this.setState({gridcelldataDic});
   }
 
   render() {
@@ -33,7 +39,8 @@ class App extends Container {
             <li className="flex_row">
               <div className="harmovis_input_button_column">
               <label htmlFor="MovesInput">
-                Operation data<MovesInput actions={actions} id="MovesInput" />
+                Operation data<GridCellDataInput actions={actions} id="MovesInput"
+                setGridcelldataDic={this.setGridcelldataDic.bind(this)} />
               </label>
               <div>{movesFileName}</div>
               </div>
@@ -73,20 +80,25 @@ class App extends Container {
             layers={[
               gridcelldata.length > 0  ?
               gridcelldata.map((data,idx)=>{
-                return new GridCellLayer({
-                  id: 'xband-mesh-layer-' + String(idx),
-                  data: data.gridcelldata,
-                  getElevation:(x)=>x.elevation,
-                  getFillColor:(x)=>x.color,
-                  opacity: 1,
-                  cellSize: 100,
-                  elevationScale: 10,
-                  pickable: true
-                })
+                if(this.state.gridcelldataDic[data.gridcelldata]){
+                  return new GridCellLayer({
+                    id: 'xband-mesh-layer-' + String(idx),
+                    data: this.state.gridcelldataDic[data.gridcelldata],
+                    getElevation:(x)=>x.elevation,
+                    getFillColor:(x)=>x.color,
+                    opacity: 0.3,
+                    cellSize: 220,
+                    elevationScale: 10,
+                    pickable: true
+                  })
+                }else{
+                  return null;
+                }
               }):null
             ]}
           />
         </div>
+        <FpsDisplay />
       </div>
     );
   }
