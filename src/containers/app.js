@@ -12,6 +12,7 @@ const MAPBOX_TOKEN = 'pk.eyJ1IjoieW11Y3lzdGsiLCJhIjoiY2oxdmhhbmd0MDAwYjM4bXd1YWV
 class App extends Container {
   constructor(props) {
     super(props);
+    this.props.actions.setExtractedDataFunc(this.getExtractedDataFunc.bind(this));
     this.props.actions.setLeading(0);
     this.props.actions.setTrailing(0);
     this.props.actions.setSecPerHour(60);
@@ -19,15 +20,30 @@ class App extends Container {
       longitude:137.46942143342378,latitude:35.60524064943615,zoom:10.0
     });
     this.state = {
-      gridcelldataDic:{}
+      gridcelldataDic:{},
+      gridcelldataArray:[]
     };
   }
+
+  getExtractedDataFunc(props){
+    const {settime} = props;
+    const {gridcelldataArray} = this.state;
+    const index = gridcelldataArray.findIndex((x)=>x.elapsedtime < settime)
+    if(index >= 0){
+      return [gridcelldataArray[index]];
+    }
+    return [];
+  }
+
   setGridcelldataDic(gridcelldataDic){
     this.setState({gridcelldataDic});
   }
+  setGridcelldataArray(gridcelldataArray){
+    this.setState({gridcelldataArray});
+  }
 
   render() {
-    const { actions, inputFileName, viewport, movedData, settime, leading,
+    const { actions, inputFileName, viewport, movedData, settime, leading, ExtractedData,
       timeBegin, timeLength, secperhour, animatePause, animateReverse } = this.props;
     const { movesFileName } = inputFileName;
     const gridcelldata = movedData.filter((x)=>x.gridcelldata);
@@ -35,12 +51,13 @@ class App extends Container {
     return (
       <div>
         <div className="harmovis_controller">
-          <ul className="flex_list">
+          <ul>
             <li className="flex_row">
               <div className="harmovis_input_button_column">
               <label htmlFor="MovesInput">
                 Operation data<GridCellDataInput actions={actions} id="MovesInput"
-                setGridcelldataDic={this.setGridcelldataDic.bind(this)} />
+                setGridcelldataDic={this.setGridcelldataDic.bind(this)}
+                setGridcelldataArray={this.setGridcelldataArray.bind(this)} />
               </label>
               <div>{movesFileName}</div>
               </div>
@@ -49,7 +66,6 @@ class App extends Container {
               再現中日時&nbsp;<SimulationDateTime settime={settime} />
             </li>
             <li className="flex_row">
-              <div className="harmovis_button">
                 {animatePause ?
                   <PlayButton actions={actions} /> :
                   <PauseButton actions={actions} />
@@ -58,7 +74,9 @@ class App extends Container {
                   <ForwardButton actions={actions} /> :
                   <ReverseButton actions={actions} />
                 }
-              </div>
+            </li>
+            <li>
+              開始 UNIX TIME 設定&nbsp;<input type="number" value={timeBegin} onChange={e=>actions.setTimeBegin(+e.target.value)} className="harmovis_input_number" />
             </li>
             <li className="flex_column">
               <label htmlFor="ElapsedTimeRange">経過時間
@@ -78,7 +96,7 @@ class App extends Container {
             viewport={viewport} actions={actions}
             mapboxApiAccessToken={MAPBOX_TOKEN}
             layers={[
-              gridcelldata.length > 0  ?
+              !ExtractedData && gridcelldata.length > 0  ?
               gridcelldata.map((data,idx)=>{
                 if(this.state.gridcelldataDic[data.gridcelldata]){
                   return new GridCellLayer({
@@ -94,6 +112,19 @@ class App extends Container {
                 }else{
                   return null;
                 }
+              }):null,
+              ExtractedData ?
+              ExtractedData.map((data,idx)=>{
+                return new GridCellLayer({
+                  id: 'xband-mesh-layer-ExtractedData-' + String(idx),
+                  data: data.gridcelldata,
+                  getElevation:(x)=>x.elevation,
+                  getFillColor:(x)=>x.color,
+                  opacity: 0.3,
+                  cellSize: 220,
+                  elevationScale: 10,
+                  pickable: true
+                })
               }):null
             ]}
           />

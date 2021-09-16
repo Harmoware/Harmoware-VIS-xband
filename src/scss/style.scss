@@ -1,0 +1,13 @@
+@import 'harmoware-vis/scss/harmoware.scss';
+
+div.harmovis_controller {
+    @extend .harmovis_controller;
+    width: 260px;
+    ul {
+        @extend ul.flex_list;
+    }
+    button.harmovis_button {
+        width: 100%;  
+    }
+}
+  
