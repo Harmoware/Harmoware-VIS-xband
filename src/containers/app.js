@@ -25,6 +25,12 @@ class App extends Container {
     };
   }
 
+  componentDidMount(){
+    setTimeout(()=>{InitialFileRead({actions:this.props.actions,
+      setGridcelldataDic:this.setGridcelldataDic.bind(this),
+      setGridcelldataArray:this.setGridcelldataArray.bind(this)})},1000);
+  }
+
   getExtractedDataFunc(props){
     const {settime} = props;
     const {gridcelldataArray} = this.state;
@@ -52,6 +58,9 @@ class App extends Container {
       <div>
         <div className="harmovis_controller">
           <ul>
+            <li className="flex_row">
+              <a href="json/sample_data.json" download>Sample Data Download</a>
+            </li>
             <li className="flex_row">
               <div className="harmovis_input_button_column">
               <label htmlFor="MovesInput">
@@ -136,3 +145,47 @@ class App extends Container {
   }
 }
 export default connectToHarmowareVis(App);
+
+const InitialFileRead = (props)=>{
+  const { actions, setGridcelldataDic, setGridcelldataArray } = props;
+  const request = new XMLHttpRequest();
+  request.open('GET', 'json/sample_data.json');
+  request.responseType = 'text';
+  request.send();
+  actions.setMovesBase([]);
+  request.onload = function() {
+    let readdata = null;
+    try {
+      readdata = JSON.parse(request.response);
+    } catch (exception) {
+      return;
+    }
+    console.log({readdata})
+    const gridcelldataDic = {};
+    const gridcelldataArray = []
+    let minElapsedtime = 2147483647;
+    let maxElapsedtime = -2147483648;
+    const movebase = readdata.reduce((movebase,readdataelement)=>{
+      const {meshId, operation:sourceoperation, ...other1} = readdataelement;
+      const operation = sourceoperation.reduce((operation,operationelement)=>{
+          const {gridcelldata, elapsedtime, ...other2} = operationelement;
+          minElapsedtime = Math.min(minElapsedtime,elapsedtime);
+          maxElapsedtime = Math.max(maxElapsedtime,elapsedtime);
+          const key = meshId+String(elapsedtime);
+          gridcelldataDic[key] = gridcelldata;
+          gridcelldataArray.push({elapsedtime,gridcelldata});
+          operation.push({gridcelldata:key, elapsedtime, ...other2});
+          return operation;
+      },[]);
+      movebase.push({meshId, operation, ...other1});
+      return movebase;
+    },[]);
+    setGridcelldataDic(gridcelldataDic)
+    setGridcelldataArray(gridcelldataArray.sort((a,b)=>a.elapsedtime < b.elapsedtime?1:-1))
+    actions.setInputFilename({ movesFileName: 'sample_data.json' });
+    actions.setTimeBegin(minElapsedtime)
+    actions.setTimeLength(maxElapsedtime - minElapsedtime)
+    actions.setAnimatePause(false);
+    actions.setAnimateReverse(false);
+  }
+}
